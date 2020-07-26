@@ -1,0 +1,720 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  3 18:27:38 2020
+
+@author: sasim
+"""
+
+#Importing Libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+import seaborn as sb
+import string
+
+#Importing CSV files
+dataset=pd.read_csv('D:\\sasi\\New folder (2)\\fake_job_postings.csv')
+dataset.info()
+desc = dataset.describe()
+
+null = dataset.isnull().sum().sort_values(ascending=False)
+na =  dataset.isna().sum().sort_values(ascending=False)
+
+#  correlation matrix
+sb.heatmap(dataset.corr(),annot=True)
+
+#To find the correlation of  variable with price by Pairplot
+sb.pairplot(dataset)
+
+
+# checking distributions using histograms
+fig = plt.figure(figsize = (15,20))
+ax = fig.gca()
+dataset.hist(ax = ax)
+
+
+
+#countplot & Pie chart for fraudulent
+fig, ax = plt.subplots(1, 2)
+sb.countplot(x='fraudulent', data=dataset, ax=ax[0])
+ax[1].pie(dataset['fraudulent'].value_counts(), labels=['Real Post', 'Fake Post'], autopct='%1.1f%%')
+fig.suptitle('Bar & Pie charts of Fraudulent value count & its percentage', fontsize=16)
+plt.show()
+
+
+#Employment type on job post fraud
+plt.figure(1,figsize=(20,8))
+sb.countplot(hue=dataset.fraudulent,x=dataset.employment_type)
+plt.legend(loc='upper right')
+plt.title('Which type of jobs have more fraudulent postings')
+
+'''By observing the count plot of the employment type we can make a conclusion that expect of employment
+ type full time there is no other types that contribute to the fraudulent job post.'''
+ 
+
+#Required Experience on job post fraud
+plt.figure(1,figsize=(20,8))
+sb.countplot(hue=dataset.fraudulent,x=dataset.required_experience)
+plt.legend(loc='upper right')
+plt.title('Which required experience of jobs have more fraudulent postings')
+
+'''The mid senior level work exprience job posting have more fraudulent job post then any other'''
+
+#Required Education on job post fraud
+plt.figure(1,figsize=(20,8))
+plt.xticks(rotation='90')
+sb.countplot(hue=dataset.fraudulent,x=dataset.required_education)
+plt.legend(loc='upper right')
+plt.title('Which required education of jobs have more fraudulent postings')
+
+'''We can see in the plot that the job post which have education requirement 
+as bachelors degree contribute more to the fraudulent post'''
+
+#Telecommuting Education on job post fraud
+plt.figure(1,figsize=(20,8))
+sb.countplot(hue=dataset.fraudulent,x=dataset.telecommuting)
+plt.title('How telecommuting jobs effect contribute towards the fraudulent postings.')
+
+'''For the non telecomunicating position there is fraudulent post then the telecomunicating position.'''
+
+#Presence of company logo on job post on fraud post
+plt.figure(1,figsize=(20,8))
+sb.countplot(hue=dataset.fraudulent,x=dataset.has_company_logo)
+plt.title('Company logo presence effect on fraudulent postings')
+
+'''Job post which have the company logo in it has less number of faudulent casses 
+then the one which do not have the company logo which is like a natural thing to see.'''
+
+#Presence of screening question on job post fraud
+plt.figure(1,figsize=(20,8))
+sb.countplot(hue=dataset.fraudulent,x=dataset.has_questions)
+plt.title('Screening Question effect fraudulent postings')
+
+'''We can see that is the screening questions are present then 
+there is less number of fraudulent job compare to the job posting where not screening questions are present.'''
+
+#Jobs function on fraudulent post
+plt.figure(1,figsize=(20,12))
+sb.countplot(y=dataset.function,hue=dataset.fraudulent);
+plt.title('Which type of jobs function have postings');
+plt.xlim(0,800)
+
+'''we can see Administrative, Engineering functions have more fraudulent posts from other job functions.'''
+
+##For categorical value
+data_fraud = dataset.loc[dataset['fraudulent']==0]
+data_fraud.isnull().sum()
+data_fraud = data_fraud.dropna()
+
+## Wordcloud of most said words in Description for Fraudulent cases
+from wordcloud import WordCloud, STOPWORDS
+stopwords = STOPWORDS
+wordcloud = WordCloud (width=800, height=400, stopwords=stopwords,
+                       min_font_size=10, max_words=200).generate(' '.join(data_fraud['description']))
+plt.figure(figsize=(20,8))
+plt.imshow(wordcloud)
+plt.axis('off')
+plt.title("Most words said in description", fontsize=25)
+plt.show()
+
+
+## Wordcloud of most said words in company_profile for Fraudulent cases
+from wordcloud import WordCloud, STOPWORDS
+stopwords = STOPWORDS
+wordcloud = WordCloud (width=800, height=400, stopwords=stopwords,
+                       min_font_size=10, max_words=200).generate(' '.join(data_fraud['company_profile']))
+plt.figure(figsize=(20,8))
+plt.imshow(wordcloud)
+plt.axis('off')
+plt.title("Most words said in company_profile", fontsize=25)
+plt.show()
+
+
+## Wordcloud of most said words in Benifits for Fraudulent cases
+from wordcloud import WordCloud, STOPWORDS
+stopwords = STOPWORDS
+wordcloud = WordCloud (width=800, height=400, stopwords=stopwords,
+                       min_font_size=10, max_words=200).generate(' '.join(data_fraud['benefits']))
+plt.figure(figsize=(20,8))
+plt.imshow(wordcloud)
+plt.axis('off')
+plt.title("Most words said in benefits", fontsize=25)
+plt.show()
+
+
+
+## Wordcloud of most said words in requirements for Fraudulent cases
+from wordcloud import WordCloud, STOPWORDS
+stopwords = STOPWORDS
+wordcloud = WordCloud (width=800, height=400, stopwords=stopwords,
+                       min_font_size=10, max_words=200).generate(' '.join(data_fraud['requirements']))
+plt.figure(figsize=(20,8))
+plt.imshow(wordcloud)
+plt.axis('off')
+plt.title("Most words said in requirements", fontsize=25)
+plt.show()
+
+#Data Preprocessing for categorical variable
+
+#Feature selection
+data_chat = dataset
+'''job_id has a very low correlation with the data and salary_range 
+has to many null values so we will remove these columns, for further analysis'''
+data_chat=data_chat.drop("salary_range",axis=1)
+data_chat=data_chat.drop("job_id",axis=1)
+
+#Filling the null values with space for all columns
+data_chat.fillna(" ",inplace = True)
+
+#Creating a single paragraph for NLP analysis, by merging all categorical columns to a single column and named as a company_description
+data_chat['company_description'] = data_chat['title'] + ' ' + data_chat['location'] + ' ' + data_chat['department'] + ' ' + data_chat['company_profile'] + ' ' 
++ data_chat['description'] + ' ' + data_chat['requirements'] + ' ' + data_chat['benefits'] + ' ' + data_chat['employment_type'] + ' ' 
++ data_chat['required_education'] + ' ' + data_chat['industry'] + ' ' + data_chat['function']
+
+data_chat=data_chat.drop("title",axis=1)
+data_chat=data_chat.drop("location",axis=1)
+data_chat=data_chat.drop("department",axis=1)
+data_chat=data_chat.drop("company_profile",axis=1)
+data_chat=data_chat.drop("description",axis=1)
+data_chat=data_chat.drop("requirements",axis=1)
+data_chat=data_chat.drop("benefits",axis=1)
+data_chat=data_chat.drop("employment_type",axis=1)
+data_chat=data_chat.drop("required_experience",axis=1)
+data_chat=data_chat.drop("required_education",axis=1)
+data_chat=data_chat.drop("industry",axis=1)
+data_chat=data_chat.drop("function",axis=1)
+
+#Cleaning Data
+
+data_chat['company_description']= data_chat['company_description'].str.replace(r'[^\w\s]+', '')
+
+#Tokenize Data and Normalize Data
+import nltk
+nltk.download('punkt')
+nltk.download('wordnet')
+from nltk.corpus import stopwords
+from textblob import TextBlob
+from nltk.stem import LancasterStemmer,WordNetLemmatizer
+from string import punctuation
+from nltk import pos_tag
+from nltk.corpus import wordnet
+stop = set(stopwords.words('english'))
+punctuation = list(string.punctuation)
+stop.update(punctuation)
+def get_simple_pos(tag):
+    if tag.startswith('J'):
+        return wordnet.ADJ
+    elif tag.startswith('V'):
+        return wordnet.VERB
+    elif tag.startswith('N'):
+        return wordnet.NOUN
+    elif tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return wordnet.NOUN
+def split_into_tokens(fake):
+    fake = str(fake.encode('utf8'))#converts byts into proper unicode
+    return TextBlob(fake).words
+
+#original text
+data_chat.company_description.head()
+
+#Tokenized text
+data_chat.company_description.head().apply(split_into_tokens)
+
+
+lemmatizer = WordNetLemmatizer()
+def lemmatize_words(text):
+    final_text = []
+    for i in text.split():
+        if i.strip().lower() not in stop:
+            pos = pos_tag([i.strip()])
+            word = lemmatizer.lemmatize(i.strip(),get_simple_pos(pos[0][1]))
+            final_text.append(word.lower())
+    return " ".join(final_text)
+
+
+data_chat.company_description = data_chat.company_description.apply(lemmatize_words)
+
+# Normalized data in their base form
+def split_into_lemmas(fraud):
+    fraud = str(fraud.encode('utf8')).lower()
+    words = TextBlob(fraud).words
+    # for each word, take its "base form" = lemma 
+    return [word.lemma for word in words]
+
+data_chat.company_description.head().apply(split_into_lemmas)
+
+#splitting dataset into Training and test 
+x= data_chat['company_description'].values
+y=data_chat['fraudulent'].to_numpy()
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.25, random_state = 0)
+
+
+#CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+#CountVectorizer
+cv=CountVectorizer(min_df=0,max_df=1,binary=False,ngram_range=(1,3))
+x_train_CV=cv.fit_transform(x_train)
+x_test_CV=cv.transform(x_test)
+
+
+# TfidfVectorizer
+tv=TfidfVectorizer(min_df=0,max_df=1,use_idf=True,ngram_range=(1,3))
+x_train_TV=tv.fit_transform(x_train)
+x_test_TV=tv.transform(x_test)
+
+
+
+# classification Model
+
+#Logistic Regression
+
+from sklearn.linear_model import LogisticRegression
+log_reg = LogisticRegression(penalty='l2',C = 1.0,random_state = 0,
+                                solver='sag', multi_class='ovr')
+#For CV
+log_reg.fit(x_train_CV, y_train)
+
+# Predicting the Test set results
+y_pred_log_CV = log_reg.predict(x_test_CV)
+
+# Making the Confusion Matrix & Accuracy
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+confusion_matrix(y_test, y_pred_log_CV)
+acc_log_CV = accuracy_score(y_test, y_pred_log_CV)
+
+# Making the Classification_report
+classification_report_CV_log = classification_report(y_test, y_pred_log_CV,target_names = ['0','1'])
+
+
+#For TV
+log_reg.fit(x_train_TV, y_train)
+
+# Predicting the Test set results
+y_pred_log_TV = log_reg.predict(x_test_TV)
+
+# Making the Confusion Matrix
+confusion_matrix(y_test, y_pred_log_TV)
+acc_log_TV = accuracy_score(y_test, y_pred_log_TV)
+# Making the Classification_report
+classification_report_TV_log = classification_report(y_test, y_pred_log_TV,target_names = ['0','1'])
+
+
+
+###knearest neighbor
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors=5,metric='minkowski', p=2)
+
+#For Cv
+knn.fit(x_train_CV, y_train)
+
+y_pred_knn_CV = knn.predict(x_test_CV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+acc_knn_CV = accuracy_score(y_test, y_pred_knn_CV)
+# Making the Classification_report
+classification_report_CV_knn = classification_report(y_test, y_pred_knn_CV,target_names = ['0','1'])
+
+#For Tv
+knn.fit(x_train_TV, y_train)
+
+y_pred_knn_TV = knn.predict(x_test_TV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_knn_TV)
+acc_knn_TV = accuracy_score(y_test, y_pred_knn_TV)
+# Making the Classification_report
+classification_report_TV_knn = classification_report(y_test, y_pred_knn_TV,target_names = ['0','1'])
+
+
+###naive bayes
+from sklearn.naive_bayes import MultinomialNB
+NB= MultinomialNB()
+#for CV
+NB.fit(x_train_CV, y_train)
+
+y_pred_NB_CV = NB.predict(x_test_CV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_NB_CV)
+acc_NB_CV = accuracy_score(y_test, y_pred_NB_CV)
+classification_report_CV_NB = classification_report(y_test, y_pred_NB_CV,target_names = ['0','1'])
+
+#for TV
+NB.fit(x_train_TV, y_train)
+
+y_pred_NB_TV = NB.predict(x_test_TV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_NB_TV)
+acc_NB_TV = accuracy_score(y_test, y_pred_NB_TV)
+classification_report_TV_NB = classification_report(y_test, y_pred_NB_TV,target_names = ['0','1'])
+
+####Decision Tree_entropy
+from sklearn.tree import DecisionTreeClassifier
+DT_ent= DecisionTreeClassifier(criterion='entropy')
+# FOR CV
+DT_ent.fit(x_train_CV, y_train)
+
+y_pred_DT_ent_CV = DT_ent.predict(x_test_CV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_ent_CV)
+acc_DT_entropy_CV = accuracy_score(y_test, y_pred_DT_ent_CV)
+classification_report_CV_DT_ent = classification_report(y_test, y_pred_DT_ent_CV,target_names = ['0','1'])
+
+# FOR TV
+DT_ent.fit(x_train_TV, y_train)
+
+y_pred_DT_ent_TV = DT_ent.predict(x_test_TV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_ent_TV)
+acc_DT_entropy_TV = accuracy_score(y_test, y_pred_DT_ent_TV)
+classification_report_TV_DT_ent = classification_report(y_test, y_pred_DT_ent_TV,target_names = ['0','1'])
+
+
+####Decision Tree_gini
+from sklearn.tree import DecisionTreeClassifier
+DT_gini= DecisionTreeClassifier(criterion='gini')
+# FOR CV
+DT_gini.fit(x_train_CV, y_train)
+
+y_pred_DT_gini_CV = DT_gini.predict(x_test_CV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_gini_CV)
+acc_DT_gini_CV = accuracy_score(y_test, y_pred_DT_gini_CV)
+classification_report_CV_DT_gini = classification_report(y_test, y_pred_DT_gini_CV,target_names = ['0','1'])
+
+# FOR TV
+DT_gini.fit(x_train_TV, y_train)
+
+y_pred_DT_gini_TV = DT_gini.predict(x_test_TV)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_gini_TV)
+acc_DT_gini_TV = accuracy_score(y_test, y_pred_DT_gini_TV)
+classification_report_TV_DT_gini = classification_report(y_test, y_pred_DT_gini_TV,target_names = ['0','1'])
+
+
+#Random Forest
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
+
+RF_E = RandomForestClassifier(n_estimators=10,criterion='entropy')
+
+#For CV
+RF_E.fit(x_train_CV,y_train)
+
+y_pred_RF_E_CV = RF_E.predict(x_test_CV)
+
+confusion_matrix(y_test, y_pred_RF_E_CV)
+acc_RF_E_CV = accuracy_score(y_test, y_pred_RF_E_CV)
+classification_report_CV_RF = classification_report(y_test, y_pred_RF_CV,target_names = ['0','1'])
+
+#For TV
+RF_E.fit(x_train_TV,y_train)
+
+y_pred_RF_E_TV = RF_E.predict(x_test_TV)
+
+confusion_matrix(y_test, y_pred_RF_E_TV)
+acc_RF_E_TV = accuracy_score(y_test, y_pred_RF_E_TV)
+classification_report_TV_RF_E = classification_report(y_test, y_pred_RF_E_TV,target_names = ['0','1'])
+
+#Random Forest_gini
+from sklearn.ensemble import RandomForestClassifier
+
+
+RF_G = RandomForestClassifier(n_estimators=10,criterion='gini')
+
+#For CV
+RF_G.fit(x_train_CV,y_train)
+
+y_pred_RF_G_CV = RF_G.predict(x_test_CV)
+
+confusion_matrix(y_test, y_pred_RF_G_CV)
+acc_RF_G_CV = accuracy_score(y_test, y_pred_RF_G_CV)
+classification_report_CV_RF_G = classification_report(y_test, y_pred_RF_G_CV,target_names = ['0','1'])
+
+#For TV
+RF_G.fit(x_train_TV,y_train)
+
+y_pred_RF_G_TV = RF_G.predict(x_test_TV)
+
+confusion_matrix(y_test, y_pred_RF_G_TV)
+acc_RF_G_TV = accuracy_score(y_test, y_pred_RF_G_TV)
+classification_report_TV_RF_G = classification_report(y_test, y_pred_RF_G_TV,target_names = ['0','1'])
+
+#Comparing the accuracy
+#for cv
+accuracy_cv={'KNN':(acc_knn_CV*100), 'Log_reg':(acc_log_CV*100) , 'DT Entropy':(acc_DT_entropy_CV*100), 'NB':(acc_NB_CV*100), 
+     'Ran_For_E':(acc_RF_E_CV*100),'Ran_For_G':(acc_RF_G_CV*100),'DT GINI':(acc_DT_gini_CV*100)}
+print(accuracy_cv)
+
+#for TV
+accuracy_tv={'NB':(acc_NB_TV*100), 'Log_reg':(acc_log_TV*100), 'KNN':(acc_knn_TV*100), 'Ran_For_E':(acc_RF_E_TV*100),'Ran_for_G':(acc_RF_G_TV*100), 'DT Entropy':(acc_DT_entropy_TV*100), 
+     'DT GINI':(acc_DT_gini_TV*100)}
+print(accuracy_tv)
+
+#Bar
+#CV
+fig = plt.figure()
+
+ax = fig.add_axes([0,0,1,1])
+ax.bar(accuracy_cv.keys(),accuracy_cv.values())
+plt.show()
+
+#TV
+fig = plt.figure()
+ax = fig.add_axes([0,0,1,1])
+ax.bar(accuracy_tv.keys(),accuracy_tv.values())
+plt.show()
+
+#Scatter
+#CV
+plt.scatter(accuracy_cv.keys(),accuracy_cv.values()) 
+plt.show()
+
+#TV
+plt.scatter(accuracy_tv.keys(),accuracy_tv.values()) 
+plt.show()
+
+
+#For Numerical Variable
+data_num = dataset
+
+#Data Preprocessing & Feature selection
+data_num['employment_type'].value_counts()
+data_num['department'].value_counts()
+data_num['required_experience'].value_counts()
+data_num['required_education'].value_counts()
+data_num['industry'].value_counts()
+data_num['function'].value_counts()
+
+#Get dummies and store it in a variable
+Job = pd.get_dummies(data_num['employment_type'])
+Job=Job.drop("Contract",axis=1)
+
+experience = pd.get_dummies(data_num['required_experience'])
+experience=experience.drop("Associate",axis=1)
+
+education = pd.get_dummies(data_num['required_education'])
+education=education.drop("Unspecified",axis=1)
+
+
+
+# Remove chategorical columns
+data_num=data_num.drop("job_id",axis=1)
+data_num=data_num.drop("title",axis=1)
+data_num=data_num.drop("location",axis=1)
+data_num=data_num.drop("department",axis=1)
+data_num=data_num.drop("company_profile",axis=1)
+data_num=data_num.drop("description",axis=1)
+data_num=data_num.drop("requirements",axis=1)
+data_num=data_num.drop("benefits",axis=1)
+data_num=data_num.drop("employment_type",axis=1)
+data_num=data_num.drop("required_experience",axis=1)
+data_num=data_num.drop("required_education",axis=1)
+data_num=data_num.drop("industry",axis=1)
+data_num=data_num.drop("function",axis=1)
+
+data_num = pd.concat([data_num, Job, experience, education], axis = 1)
+
+#Splitting of SalaryRange
+data_num['salary_min'] = data_num['salary_range'][data_num['salary_range'].notnull()].apply(lambda x :x.split('-')[0])
+data_num['salary_max'] = data_num['salary_range'][data_num['salary_range'].notnull()].apply(lambda x :x.split('-')[-1])
+data_num['salary_min'] = pd.to_numeric(data_num['salary_min'], errors='coerce').fillna("0")
+data_num['salary_max'] = pd.to_numeric(data_num['salary_max'], errors='coerce').fillna("0")
+
+data_num = data_num.drop("salary_range",axis=1)
+
+#X & Y variable
+y = data_num['fraudulent'].to_numpy()
+
+data_num  = data_num.drop("fraudulent",axis=1)
+
+x = data_num
+
+# Training & Test 
+# Splitting the dataset into the Training set and Test set
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.25, random_state = 0)
+
+# Feature Scaling
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+x_train = sc.fit_transform(x_train)
+x_test = sc.transform(x_test)
+
+
+
+# Fitting Logistic Regression to the Training set
+from sklearn.linear_model import LogisticRegression
+log_reg = LogisticRegression(penalty='l2',C = 1.0,random_state = 0,
+                                solver='sag', multi_class='ovr')
+log_reg.fit(x_train, y_train)
+
+# Predicting the Test set results
+y_pred_log = log_reg.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+confusion_matrix(y_test, y_pred_log)
+acc_log = accuracy_score(y_test, y_pred_log)
+classification_report_log = classification_report(y_test,y_pred_log,target_names = ['0','1'])
+
+
+
+
+###knearest neighbor
+from sklearn.neighbors import KNeighborsClassifier
+knn = KNeighborsClassifier(n_neighbors=5,
+                        metric='minkowski', p=2)
+
+knn.fit(x_train, y_train)
+
+y_pred_knn = knn.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+confusion_matrix(y_test, y_pred_knn)
+acc_knn = accuracy_score(y_test, y_pred_knn)
+classification_report_knn = classification_report(y_test,y_pred_knn,target_names = ['0','1'])
+
+
+###naive bayes
+
+from sklearn.naive_bayes import GaussianNB
+NB = GaussianNB()
+
+NB.fit(x_train, y_train)
+y_pred_NB = NB.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_knn)
+acc_NB = accuracy_score(y_test, y_pred_NB)
+classification_report_NB = classification_report(y_test,y_pred_NB,target_names = ['0','1'])
+
+
+####Decision Tree_Entropy
+from sklearn.tree import DecisionTreeClassifier
+DT_E= DecisionTreeClassifier(criterion='entropy')
+
+DT_E.fit(x_train, y_train)
+
+y_pred_DT_E = DT_E.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_E)
+acc_DT_E = accuracy_score(y_test, y_pred_DT_E)
+classification_report_DT_E = classification_report(y_test,y_pred_DT_E,target_names = ['0','1'])
+
+####Decision Tree_gini
+from sklearn.tree import DecisionTreeClassifier
+DT_G= DecisionTreeClassifier(criterion='gini')
+
+DT_G.fit(x_train, y_train)
+
+y_pred_DT_G = DT_G.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_DT_G)
+acc_DT_G = accuracy_score(y_test, y_pred_DT_G)
+classification_report_DT_G = classification_report(y_test,y_pred_DT_G,target_names = ['0','1'])
+
+
+
+###Random Forest entropy
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
+
+RF_E = RandomForestClassifier(n_estimators=10,
+                                    criterion='entropy')
+RF_E.fit(x_train,y_train)
+y_pred_RF_E = RF_E.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_RF_E)
+acc_RF_E = accuracy_score(y_test, y_pred_RF_E)
+classification_report_RF_E = classification_report(y_test,y_pred_RF_E,target_names = ['0','1'])
+
+###Random Forest gini
+from sklearn.ensemble import RandomForestClassifier
+
+RF_G = RandomForestClassifier(n_estimators=10,
+                                    criterion='gini')
+RF_G.fit(x_train,y_train)
+y_pred_RF_G = RF_G.predict(x_test)
+
+# Making the Confusion Matrix & Accuracy& Classification report
+confusion_matrix(y_test, y_pred_RF_G)
+acc_RF_G = accuracy_score(y_test, y_pred_RF_G)
+classification_report_RF_G = classification_report(y_test,y_pred_RF_G,target_names = ['0','1'])
+
+#Comparing the accuracy
+
+accuracy={'DT GINI':(acc_DT_G*100),'Log_reg':(acc_log*100) , 'KNN':(acc_knn*100), 'Ran_For_G':(acc_RF_G*100),'DT Entropy':(acc_DT_E*100), 
+     'Ran_For_E':(acc_RF_E*100),}
+print(accuracy)
+
+#Bar
+fig = plt.figure()
+ax = fig.add_axes([0,0,1,1])
+ax.bar(accuracy.keys(),accuracy.values())
+plt.show()
+
+#Scatter
+plt.scatter(accuracy.keys(),accuracy.values()) 
+plt.show()
+
+from sklearn.metrics import roc_curve, roc_auc_score
+
+results_table = pd.DataFrame(columns = ['models', 'fpr','tpr','auc'])
+
+predictions = {'LR': y_pred_log, 'KNN': y_pred_knn, 'NB': y_pred_NB, 'DT_E': y_pred_DT_E, 'DT_G': y_pred_DT_G, 
+               'RF_E': y_pred_RF_E, 'RF_G': y_pred_RF_G}
+
+for key in predictions:
+    fpr, tpr, _ = roc_curve(y_test, predictions[key])
+    auc = roc_auc_score(y_test, predictions[key])
+    
+    results_table = results_table.append({'models': key,
+                                         'fpr' : fpr,
+                                         'tpr' : tpr,
+                                         'auc' : auc}, ignore_index=True)
+    
+results_table.set_index('models', inplace=True)
+
+print(results_table)
+
+fig = plt.figure(figsize = (8,6))
+
+for i in results_table.index:
+    plt.plot(results_table.loc[i]['fpr'], 
+             results_table.loc[i]['tpr'], 
+             label = "{}, AUC={:.3f}".format(i, results_table.loc[i]['auc']))
+    
+plt.plot([0,1], [0,1], color = 'black', linestyle = '--')
+
+plt.xticks(np.arange(0.0, 1.1, step=0.1))
+plt.xlabel("False Positive Rate", fontsize=15)
+
+plt.yticks(np.arange(0.0, 1.1, step=0.1))
+plt.ylabel("True Positive Rate", fontsize=15)
+
+plt.title('ROC Curve Analysis', fontweight='bold', fontsize=15)
+plt.legend(prop = {'size':13}, loc = 'lower right')
+
+
+plt.show()
+
+
+
+
+
